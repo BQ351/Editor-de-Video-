@@ -61,3 +61,14 @@ Flujo: El pipeline es: Decodificar (FFmpeg) -> Convertir a Mat -> Procesar (Open
 V-Make & Edit demuestra que es posible crear software de escritorio nativo de alto nivel en Windows sin depender de frameworks pesados de terceros o electron.
 
 La decisión de usar Vcpkg + CMake fue crucial: asegura que cualquiera que clone el repositorio solo obtenga el código fuente ("lo escrito"), mientras que el entorno de desarrollo se encarga de aprovisionar los gigabytes de librerías binarias necesarios para que FFmpeg y OpenCV funcionen. Es un ejemplo de ingeniería de software disciplinada y moderna.
+
+
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/c4a6fe18-e540-4be8-8d2f-19d6bafc7ccf" />
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/5c830858-a020-4d6f-9e32-35192225051e" />
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/8248cf8f-e068-4de9-b668-fb5a9fe01a77" />
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/5cc7ae8b-dc43-498f-81ea-200d03d73328" />
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/c933b703-c71d-4145-b734-8f89f1325901" />
+
+
+
+
