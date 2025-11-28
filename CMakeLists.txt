@@ -5,30 +5,58 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ------------------------------------------------
-# 1. CONFIGURACIÓN DE RUTAS (PATHS)
+# 1. CONFIGURACIÓN DE VCPKG
+# ------------------------------------------------
+
+# Especifica la ruta al toolchain de vcpkg
+# IMPORTANTE: Ajusta esta ruta a tu instalación de vcpkg
+set(CMAKE_TOOLCHAIN_FILE "D:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+
+# Triplet para Windows x64
+set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "")
+
+# ------------------------------------------------
+# 2. CONFIGURACIÓN DE QT
 # ------------------------------------------------
 
 # RUTA DE QT
 set(CMAKE_PREFIX_PATH "D:/Qt/6.10.0/msvc2022_64") 
 
-# RUTA DE FFMPEG (Rutas originales de VCPKG para las DLLs de FFmpeg)
-set(FFMPEG_INCLUDE_DIR "D:/vcpkg/installed/x64-windows/include")
-set(FFMPEG_LIB_DIR "D:/vcpkg/installed/x64-windows/lib")
-
-# RUTA DE OPENCV (✅ CORREGIDA)
-set(OPENCV_ROOT "D:/ProgramacionDelSistemaProyect/lib/opencv")
-set(OPENCV_INCLUDE_DIR "${OPENCV_ROOT}/include/opencv4")
-set(OPENCV_LIB_DIR "${OPENCV_ROOT}/lib")
-
-# ------------------------------------------------
-# 2. CONFIGURACIÓN DEL PROYECTO
-# ------------------------------------------------
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# ------------------------------------------------
+# 3. BÚSQUEDA DE PAQUETES
+# ------------------------------------------------
+
+# Buscar Qt
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
+
+# Buscar FFmpeg (vcpkg proporciona targets modernos)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
+    libavformat
+    libavcodec
+    libavutil
+    libswscale
+    libswresample
+)
+
+# Buscar OpenCV
+find_package(OpenCV REQUIRED COMPONENTS
+    core
+    imgproc
+    imgcodecs
+    highgui
+    videoio
+    video
+    features2d
+)
+
+# ------------------------------------------------
+# 4. CONFIGURACIÓN DEL PROYECTO
+# ------------------------------------------------
 
 add_executable(MiApp
     src/main.cpp
@@ -47,58 +75,63 @@ add_executable(MiApp
 set_property(TARGET MiApp PROPERTY WIN32_EXECUTABLE TRUE)
 
 # ------------------------------------------------
-# 3. INCLUDES Y LIBRARIES
+# 5. INCLUDES Y LIBRARIES
 # ------------------------------------------------
 
-# ✅ CORREGIDO: Incluir la ruta correcta de OpenCV
+# Incluir directorios (vcpkg y find_package se encargan automáticamente)
 target_include_directories(MiApp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${FFMPEG_INCLUDE_DIR}
-    ${OPENCV_INCLUDE_DIR}  # Esto resuelve a: D:/ProgramacionDelSistemaProyect/lib/opencv/include/opencv4
 )
 
-# ✅ CORREGIDO: Especificar UTF-8 para evitar warnings C4828
+# Configurar UTF-8 para MSVC
 if(MSVC)
     target_compile_options(MiApp PRIVATE /utf-8)
 endif()
 
-# Enlace a las librerías
+# Enlazar librerías
 target_link_libraries(MiApp PRIVATE
     Qt6::Widgets
-    
-    # FFmpeg (Desde VCPKG)
-    ${FFMPEG_LIB_DIR}/avformat.lib
-    ${FFMPEG_LIB_DIR}/avcodec.lib
-    ${FFMPEG_LIB_DIR}/avutil.lib
-    ${FFMPEG_LIB_DIR}/swscale.lib
-    ${FFMPEG_LIB_DIR}/swresample.lib
-    
-    # OpenCV (Solo los módulos esenciales)
-    ${OPENCV_LIB_DIR}/opencv_core4.lib
-    ${OPENCV_LIB_DIR}/opencv_imgproc4.lib
-    ${OPENCV_LIB_DIR}/opencv_imgcodecs4.lib
-    ${OPENCV_LIB_DIR}/opencv_highgui4.lib
-    ${OPENCV_LIB_DIR}/opencv_videoio4.lib
-    ${OPENCV_LIB_DIR}/opencv_video4.lib
-    ${OPENCV_LIB_DIR}/opencv_features2d4.lib
+    PkgConfig::FFMPEG
+    ${OpenCV_LIBS}
 )
 
 # ------------------------------------------------
-# 4. COPIA AUTOMÁTICA DE DLLs
+# 6. POST-BUILD: COPIA DE DLLs
 # ------------------------------------------------
 
-# Copiar DLLs de VCPKG (FFmpeg)
+# Copiar DLLs de Qt
 add_custom_command(TARGET MiApp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "D:/vcpkg/installed/x64-windows/bin"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:Qt6::Core>
+    $<TARGET_FILE:Qt6::Gui>
+    $<TARGET_FILE:Qt6::Widgets>
     $<TARGET_FILE_DIR:MiApp>
-    COMMENT "Copiando DLLs de FFmpeg desde Vcpkg..."
+    COMMENT "Copiando DLLs de Qt..."
 )
 
-# Copiar DLLs de OpenCV
+# Copiar DLLs de vcpkg (FFmpeg y dependencias)
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(VCPKG_BIN_DIR "D:/vcpkg/installed/x64-windows/debug/bin")
+else()
+    set(VCPKG_BIN_DIR "D:/vcpkg/installed/x64-windows/bin")
+endif()
+
 add_custom_command(TARGET MiApp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${OPENCV_ROOT}/bin"
+    ${VCPKG_BIN_DIR}
     $<TARGET_FILE_DIR:MiApp>
-    COMMENT "Copiando DLLs de OpenCV..."
+    COMMENT "Copiando DLLs de vcpkg (FFmpeg, OpenCV, etc.)..."
 )
+
+# ------------------------------------------------
+# 7. MENSAJES DE INFORMACIÓN
+# ------------------------------------------------
+
+message(STATUS "==============================================")
+message(STATUS "Configuración del proyecto:")
+message(STATUS "  - Vcpkg toolchain: ${CMAKE_TOOLCHAIN_FILE}")
+message(STATUS "  - Qt prefix: ${CMAKE_PREFIX_PATH}")
+message(STATUS "  - FFmpeg encontrado: ${FFMPEG_FOUND}")
+message(STATUS "  - OpenCV versión: ${OpenCV_VERSION}")
+message(STATUS "  - OpenCV libs: ${OpenCV_LIBS}")
+message(STATUS "==============================================")
